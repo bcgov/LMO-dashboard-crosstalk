@@ -1,0 +1,328 @@
+---
+title: "2024 LMO Dashboard"
+format: 
+  dashboard:
+    orientation: columns
+    self-contained: true
+---
+```{r}
+library(tidyverse)
+library(plotly)
+library(crosstalk)
+library(conflicted)
+library(here)
+conflicts_prefer(plotly::layout)
+conflicts_prefer(dplyr::filter)
+#functions--------------------------------
+barplot_by <- function(tbbl, var, cat_order=NULL, y_font_size=10){
+  plot_ly(tbbl,
+        x = ~value,
+        y = ~fct_reorder(get(var), value), 
+        color = ~name,
+        type = 'bar',
+        orientation = 'h',
+        colors = ~colour,
+        hovertext = ~paste0(get(var),
+                            "\n Job Openings: ",
+                            scales::comma(`Job Openings`, accuracy=1),
+                            "\n",
+                            name,
+                            ": ",
+                            scales::comma(value, accuracy=1)),
+        hoverinfo = 'text',  
+        textposition = "none")|> #hover only
+  layout(
+    showlegend=FALSE,
+    barmode = 'stack',
+    yaxis = list(
+      title = "",
+      tickfont = list(size = y_font_size),
+      categoryorder = cat_order
+      ),
+    xaxis = list(
+      title = "",
+      tickformat = "~s"
+    )
+  )|>
+  config(displayModeBar = FALSE)
+}
+barplot <- function(tbbl, var, yvar="two_digit", format=scales::comma, accuracy=1, tickformat = "~s", y_font_size=10){
+  tbbl|>
+    plot_ly(
+          x = ~get(var),
+          y = ~get(yvar), 
+          type = 'bar',
+          orientation = 'h',
+          color= 1,
+          colors="#2a2d64",
+          hovertext = ~paste0(get(yvar),
+                              "\n",
+                              str_to_title(str_replace_all(var, "_"," ")),
+                              " = ",
+                              format(get(var), accuracy = accuracy)),  
+          hoverinfo = 'text',  
+          textposition = "none")|> #hover only
+    layout(
+      #showlegend = FALSE,
+      yaxis = list(
+        title = "",
+        tickfont = list(size = y_font_size),
+        categoryorder = "trace"
+        ),
+      xaxis = list(
+        title = "",
+        tickformat = tickformat
+      )
+    )|>
+  config(displayModeBar = FALSE)
+}
+read_data <- function(file_name){
+  assign(str_sub(file_name, end=-5), read_rds(here("out",file_name)), envir = .GlobalEnv)
+}
+#read the data-----------------------------
+list.files(here("out"))|>
+  walk(read_data)
+```
+
+# By broad occupational groups
+
+## {.sidebar} {width=15%}
+
+```{r}
+filter_select(
+  id = "region",
+  label = "Select a region:",
+  sharedData = jo_pie,
+  ~geographic_area,
+  selected = "British Columbia",
+  multiple = FALSE
+)
+```
+
+## Column {width=35%}
+
+### Row {.tabset}
+
+```{r}
+#| title: Job openings by region
+jo_pie|>
+  plot_ly( 
+        labels = ~name, 
+        values = ~round(value), 
+        type = 'pie',
+        marker = list(colors = ~colour),
+        hovertext = ~paste0("\n Job Openings: ",
+                            scales::comma(`Job Openings`, accuracy=1),
+                            "\n",
+                            name,
+                            ": ",
+                            scales::comma(value, accuracy=1)),
+        hoverinfo = 'text'
+        )
+```
+
+```{r}
+#| title: Region's share of current employment
+emp_pie|>
+  plot_ly( 
+        labels = ~name, 
+        values = ~round(value), 
+        type = 'pie',
+        marker = list(colors = ~colour)
+  )
+```
+
+### Row {.tabset}
+```{r}
+#| title: Job Openings
+broad <- jo_broad|>
+  barplot_by("broad", cat_order="trace")
+broad
+```
+
+```{r}
+#| title: Current Employment
+emp_broad|>
+  barplot("value", "broad")
+```
+
+```{r}
+#| title: Employment Growth
+cagr_broad|>
+  barplot("value", "broad", format=scales::percent, accuracy=.1, tickformat=".1%")
+```
+
+### Row {.tabset}
+
+```{r}
+#| title: Job Openings
+jo_teer|>
+  barplot_by("teer", cat_order = "trace")
+```
+
+```{r}
+#| title: Current Employment
+emp_teer|>
+  barplot("value", "teer")
+```
+
+```{r}
+#| title: Employment Growth
+cagr_teer|>
+  barplot("value", "teer", format=scales::percent, accuracy=.1, tickformat=".1%")
+```
+
+## Column 
+
+### Row {.tabset}
+
+```{r}
+#| title: Job Openings 
+jo_two|>
+  barplot_by("two_digit", cat_order = "trace")
+```
+
+```{r}
+#| title: Current Employment 
+emp_two|>
+  barplot("value", "two_digit")
+```
+
+```{r}
+#| title: Employment Growth 
+cagr_two|>
+  barplot("value", "two_digit", format=scales::percent, accuracy=.1, tickformat=".1%")
+```
+
+# By Occupation
+
+## {.sidebar} {width=15%}
+
+```{r}
+filter_select(
+  id = "region_both",
+  label = "Select a region:",
+  sharedData = jo_occ,
+  ~geographic_area,
+  selected = "British Columbia",
+  multiple = FALSE
+)
+filter_select(
+  id = "jo_broad",
+  label = "Select a broad NOC category:",
+  sharedData = jo_occ,
+  ~broad,
+  selected = "Sales and service occupations",
+  multiple = FALSE
+)
+filter_select(
+  id = "jo_teer",
+  label = "Select a TEER category:",
+  sharedData = jo_occ,
+  ~teer,
+  selected = "5 No Formal Education",
+  multiple = FALSE
+)
+```
+
+## Column
+
+### Row {.tabset}
+
+```{r}
+#| title: Job Openings
+occ <- jo_occ|>
+  barplot_by("description", "trace")
+occ
+```
+
+```{r}
+#| title: Current Employment
+  emp_occ|>
+    barplot("value", "description", "trace")
+```
+
+```{r}
+#| title: Employment Growth
+  cagr_occ|>
+    barplot("value", "description", format=scales::percent, accuracy=.1, tickformat=".1%")
+```
+
+# By industry
+
+## {.sidebar} {width=15%}
+
+```{r}
+filter_select(
+  id = "region_jo_ind",
+  label = "Select a region:",
+  sharedData = jo_ind,
+  ~geographic_area,
+  selected = "British Columbia",
+  multiple = FALSE
+)
+```
+
+## Column {.tabset}
+
+```{r}
+#| title: Job Openings
+jo_ind_agg|>
+  barplot_by("aggregate_industry", "trace")|>
+  layout(title = 'Aggregate Industries')
+```
+
+```{r}
+#| title: Current employment
+emp_agg_ind|>
+   barplot("value", "aggregate_industry", "trace")|>
+  layout(title = 'Aggregate Industries')
+```
+
+```{r}
+#| title: Employment growth
+cagr_agg_ind|>
+    barplot("value", "aggregate_industry", format=scales::percent, accuracy=.1, tickformat=".1%")|>
+  layout(title = 'Aggregate Industries')
+```
+
+## Column {.tabset}
+
+```{r}
+#| title: Job Openings
+jo_ind|>
+  barplot_by("industry", "trace", y_font_size = 8)|>
+  layout(title = 'LMO Industries')
+```
+
+```{r}
+#| title: Current Employment
+emp_ind|>
+   barplot("value", "industry", "trace")|>
+  layout(title = 'LMO Industries')
+```
+
+```{r}
+#| title: Employment Growth
+cagr_ind|>
+    barplot("value", "industry", format=scales::percent, accuracy=.1, tickformat=".1%")|>
+  layout(title = 'LMO Industries')
+```
+
+#
+
+```{js}
+function remove_all_option() {
+  <!-- this removes the stupid (All) option for the filter_selects. This needs to be at end of code, on its own page (thus the # above) -->
+  document.getElementById("region").getElementsByClassName("selectized")[0].selectize.removeOption("");
+  document.getElementById("jo_teer").getElementsByClassName("selectized")[0].selectize.removeOption("");
+  document.getElementById("jo_broad").getElementsByClassName("selectized")[0].selectize.removeOption("");
+  document.getElementById("region_both").getElementsByClassName("selectized")[0].selectize.removeOption("");
+  document.getElementById("region_jo_ind").getElementsByClassName("selectized")[0].selectize.removeOption("");
+}
+window.onload = remove_all_option;
+```
+
+
+
+
