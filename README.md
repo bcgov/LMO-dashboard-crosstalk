@@ -1,33 +1,29 @@
-<!-- 
-Add a project state badge
+[![img](https://img.shields.io/badge/Lifecycle-Experimental-339999)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 
-See <https://github.com/BCDevExchange/Our-Project-Docs/blob/master/discussion/projectstates.md> 
-If you have bcgovr installed and you use RStudio, click the 'Insert BCDevex Badge' Addin.
--->
-
-LMO-dashboard-crosstalk
-============================
+# LMO-dashboard-crosstalk
 
 ### Usage
 
-Describe data being used (links), and how to run. Eg:
+To run you first need to download 4 files from 4castviewer:
 
-There are four core scripts that are required for the analysis, they need to be run in order:
+1.  demand_industry.xlsx: the demand file for ALL occupations and 8 regions, by industry.
 
--   01\_clean.R
--   02\_analysis.R
--   03\_visualize.R
--   04\_output.R
+2.  demand_occupation.xlsx: the demand for ALL industries and 8 regions, by occupation.
 
-#### Example
+3.  employment_industry.xlsx: the employment file for ALL occupations and 8 regions, by industry.
 
-This is a basic example which shows you how to solve a common problem:
+4.  employment_occupation.xlsx: the employment file for ALL industries and 8 regions, by occupation.
 
-``` r
-## basic example code
-```
+-   "ALL" indicates aggregated across all values, and the 8 regions are B.C. plus the 7 LMO regions (no sub-aggregates)
 
-### Project Status
+-   For the employment files the dates need to be current year till the end. (for current year + cagr calculation).
+
+-   For the demand files the dates need to be next year till the end year (for 10 year sum of demand components).
+
+There are two scripts that are required for the analysis, they need to be run in order:
+
+-   01_preprocess.R
+-   02_lmo_dull.qmd
 
 ### Getting Help or Reporting an Issue
 
@@ -41,7 +37,7 @@ Please note that this project is released with a [Contributor Code of Conduct](C
 
 ### License
 
-```
+```         
 Copyright 2024 Province of British Columbia
 
 Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -54,5 +50,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 ```
----
-*This project was created using the [bcgovr](https://github.com/bcgov/bcgovr) package.* 
+
+------------------------------------------------------------------------
+
+*This project was created using the [bcgovr](https://github.com/bcgov/bcgovr) package.*

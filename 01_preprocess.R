@@ -1,10 +1,3 @@
-#' To run you first need to download 4 files from 4castviewer:
-#' 1) demand_industry.xlsx: the demand file for ALL occupations and 8 regions, by industry.
-#' 2) demand_occupation.xlsx: the demand for ALL industries and 8 regions, by occupation.
-#' 3) employment_industry.xlsx: the employment file for ALL occupations and 8 regions, by industry.
-#' 4) employment_occupation.xlsx: the employment file for ALL industries and 8 regions, by occupation.
-#' "ALL" indicates aggregated across all values, and the 8 regions are B.C. plus the 7 LMO regions (no sub-aggregates)
-
 library(tidyverse)
 library(here)
 library(readxl)
