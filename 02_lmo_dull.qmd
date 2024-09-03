@@ -6,18 +6,16 @@ format:
     self-contained: true
 ---
 ```{r}
-library(tidyverse)
 library(plotly)
 library(crosstalk)
 library(conflicted)
 library(here)
 conflicts_prefer(plotly::layout)
-conflicts_prefer(dplyr::filter)
 #functions--------------------------------
 barplot_by <- function(tbbl, var, cat_order=NULL, y_font_size=10){
   plot_ly(tbbl,
         x = ~value,
-        y = ~fct_reorder(get(var), value), 
+        y = ~forcats::fct_reorder(get(var), value), 
         color = ~name,
         type = 'bar',
         orientation = 'h',
@@ -57,7 +55,7 @@ barplot <- function(tbbl, var, yvar="two_digit", format=scales::comma, accuracy=
           colors="#2a2d64",
           hovertext = ~paste0(get(yvar),
                               "\n",
-                              str_to_title(str_replace_all(var, "_"," ")),
+                              stringr::str_to_title(stringr::str_replace_all(var, "_"," ")),
                               " = ",
                               format(get(var), accuracy = accuracy)),  
           hoverinfo = 'text',  
@@ -77,11 +75,11 @@ barplot <- function(tbbl, var, yvar="two_digit", format=scales::comma, accuracy=
   config(displayModeBar = FALSE)
 }
 read_data <- function(file_name){
-  assign(str_sub(file_name, end=-5), read_rds(here("out",file_name)), envir = .GlobalEnv)
+  assign(stringr::str_sub(file_name, end=-5), readr::read_rds(here("out",file_name)), envir = .GlobalEnv)
 }
 #read the data-----------------------------
 list.files(here("out"))|>
-  walk(read_data)
+  purrr::walk(read_data)
 ```
 
 # By broad occupational groups
@@ -98,6 +96,15 @@ filter_select(
   multiple = FALSE
 )
 ```
+
+-   This page displays job openings, current employment, and employment growth by occupational groups.
+-   We consider 4 different levels of aggregation.
+-   Top left shows: 1) job openings by type and 2) the size of the region.
+-   Middle left is aggregated by broad occupational group.
+-   Bottom left is aggregated by TEER.
+-   Right is aggregated by 2 digit NOCs.
+-   Bottom right of each panel has an "Expand" button.
+
 
 ## Column {width=35%}
 
@@ -225,6 +232,8 @@ filter_select(
 )
 ```
 
+-   Drilldown to occupational data by region, broad occupational group and TEER.
+
 ## Column
 
 ### Row {.tabset}
@@ -262,6 +271,9 @@ filter_select(
   multiple = FALSE
 )
 ```
+
+-   Left panel displays breakdown of job openings, current employment and employment growth by aggregate industry.
+-   Right panel displays breakdown of job openings, current employment and employment growth by LMO industry.
 
 ## Column {.tabset}
 
