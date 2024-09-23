@@ -142,9 +142,8 @@ emp_pie|>
 ### Row {.tabset}
 ```{r}
 #| title: Job Openings
-broad <- jo_broad|>
+jo_broad|>
   barplot_by("broad", cat_order="trace")
-broad
 ```
 
 ```{r}

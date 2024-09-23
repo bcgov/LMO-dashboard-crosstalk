@@ -5,6 +5,7 @@ library(janitor)
 library(crosstalk)
 #constants------------------------------------
 lmo_colours <- c("#8abbe8","#2a2d64")
+df_list <- list()
 #functions---------------------------
 get_current <- function(tbbl){
   tbbl$value[tbbl$name==min(tbbl$name)]
@@ -79,81 +80,19 @@ employment_industry <- read_excel(here("data","employment_industry.xlsx"), skip 
   select(industry=industry.y, aggregate_industry, geographic_area, name, value)|>
   mutate(geographic_area=str_replace_all(geographic_area, "&", "and"))
 
-#write shareddata objects---------------------
+#pie charts---------------------
 
-demand_occupation|>
+df_list[["job_openings_pie"]] <- demand_occupation|>
   group_by(name, geographic_area)|>
   summarize(value=sum(value, na.rm = TRUE),
             `Job Openings`=sum(`Job Openings`, na.rm=TRUE))|>
   filter(`Job Openings`>0)|>
-  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))|>
+  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))
+
+df_list[["job_openings_pie"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","jo_pie.rds"))
 
-demand_occupation|>
-  group_by(broad, geographic_area, name)|>
-  summarize(value=sum(value, na.rm=TRUE),
-            `Job Openings`=sum(`Job Openings`, na.rm = TRUE))|>
-  ungroup()|>
-  arrange(geographic_area, `Job Openings`)|>
-  filter(`Job Openings`>0)|>
-  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))|>
-  SharedData$new(~geographic_area, group="region1")|>
-  write_rds(here("out","jo_broad.rds"))
-
-demand_occupation|>
-  group_by(teer, geographic_area, name)|>
-  summarize(value=sum(value, na.rm=TRUE),
-            `Job Openings`=sum(`Job Openings`, na.rm = TRUE))|>
-  ungroup()|>
-  arrange(geographic_area, `Job Openings`)|>
-  filter(`Job Openings`>0)|>
-  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))|>
-  SharedData$new(~geographic_area, group="region1")|>
-  write_rds(here("out","jo_teer.rds"))
-
-demand_occupation|>
-  group_by(geographic_area, teer, broad, name)|>
-  summarize(value=sum(value, na.rm=TRUE),
-            `Job Openings`=sum(`Job Openings`, na.rm = TRUE))|>
-  ungroup()|>
-  arrange(geographic_area, desc(teer), `Job Openings`)|>
-  unite(two_digit, broad, teer, sep=": ")|>
-  filter(`Job Openings`>0)|>
-  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))|>
-  SharedData$new(~geographic_area, group="region1")|>
-  write_rds(here("out","jo_two.rds"))
-
-demand_occupation|>
-  ungroup()|>
-  arrange(geographic_area, broad, teer, `Job Openings`)|>
-  filter(`Job Openings`>0)|>
-  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))|>
-  SharedData$new(~interaction(geographic_area, broad, teer), group="drilldown")|>
-  write_rds(here("out","jo_occ.rds"))
-
-demand_industry|>
-  filter(`Job Openings`>0)|>
-  group_by(geographic_area)|>
-  slice_max(`Job Openings`, n=100)|> #this keeps the top 50!!! industries (2 rows for each industry/region)
-  arrange(`Job Openings`, .by_group = TRUE)|>
-  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))|>
-  SharedData$new(~geographic_area, group="region_jo_ind")|>
-  write_rds(here("out","jo_ind.rds"))
-
-demand_industry|>
-  group_by(aggregate_industry, geographic_area, name)|>
-  summarize(`Job Openings`=sum(`Job Openings`, na.rm = TRUE),
-            value=sum(value, na.rm=TRUE)
-            )|>
-  ungroup()|>
-  arrange(geographic_area, `Job Openings`)|>
-  filter(`Job Openings`>0)|>
-  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))|>
-  SharedData$new(~geographic_area, group="region_jo_ind")|>
-  write_rds(here("out","jo_ind_agg.rds"))
-
-#for the regional shares pie
 region_emp <- employment_occupation|>
   filter(name==min(name))|>
   group_by(geographic_area)|>
@@ -167,112 +106,235 @@ residual_emp <- region_emp|>
          name="Employment: All other regions",
          colour=lmo_colours[2])
 
-bind_rows(region_emp, residual_emp)|>
-  arrange(geographic_area)|>
+df_list[["employment_pie"]] <- bind_rows(region_emp, residual_emp)|>
+  arrange(geographic_area)
+
+df_list[["employment_pie"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","emp_pie.rds"))
 
-employment_occupation|>
+#by broad occupational groups----------------------------------
+
+df_list[["job_openings_broad"]] <- demand_occupation|>
+  group_by(broad, geographic_area, name)|>
+  summarize(value=sum(value, na.rm=TRUE),
+            `Job Openings`=sum(`Job Openings`, na.rm = TRUE))|>
+  ungroup()|>
+  arrange(geographic_area, `Job Openings`)|>
+  filter(`Job Openings`>0)|>
+  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))
+
+df_list[["job_openings_broad"]]|>
+  SharedData$new(~geographic_area, group="region1")|>
+  write_rds(here("out","jo_broad.rds"))
+
+df_list[["employment_broad"]] <- employment_occupation|>
   filter(name==min(name))|>
   group_by(broad, geographic_area)|>
   summarize(value=sum(value, na.rm=TRUE))|>
   arrange(value)|>
-  mutate(colour=lmo_colours[1])|>
+  mutate(colour=lmo_colours[1])
+
+df_list[["employment_broad"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","emp_broad.rds"))
 
-employment_occupation|>
+df_list[["cagr_broad"]] <- employment_occupation|>
   group_by(broad, geographic_area, name)|>
   summarize(value=sum(value, na.rm=TRUE))|>
   nest()|>
   mutate(value=map_dbl(data, get_cagr),
          colour=lmo_colours[1])|>
   select(-data)|>
-  arrange(value)|>
+  arrange(value)
+
+df_list[["cagr_broad"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","cagr_broad.rds"))
 
-employment_occupation|>
+#by TEER----------------------------------------
+
+df_list[["job_openings_teer"]] <- demand_occupation|>
+  group_by(teer, geographic_area, name)|>
+  summarize(value=sum(value, na.rm=TRUE),
+            `Job Openings`=sum(`Job Openings`, na.rm = TRUE))|>
+  ungroup()|>
+  arrange(geographic_area, `Job Openings`)|>
+  filter(`Job Openings`>0)|>
+  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))
+
+df_list[["job_openings_teer"]]|>
+  SharedData$new(~geographic_area, group="region1")|>
+  write_rds(here("out","jo_teer.rds"))
+
+df_list[["employment_teer"]] <-employment_occupation|>
   filter(name==min(name))|>
   group_by(teer, geographic_area)|>
   summarize(value=sum(value, na.rm=TRUE))|>
   arrange(value)|>
-  mutate(colour=lmo_colours[1])|>
+  mutate(colour=lmo_colours[1])
+
+df_list[["employment_teer"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","emp_teer.rds"))
 
-employment_occupation|>
+df_list[["cagr_teer"]] <- employment_occupation|>
   group_by(teer, geographic_area, name)|>
   summarize(value=sum(value, na.rm=TRUE))|>
   nest()|>
   mutate(value=map_dbl(data, get_cagr),
          colour=lmo_colours[1])|>
   select(-data)|>
-  arrange(value)|>
+  arrange(value)
+
+df_list[["cagr_teer"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","cagr_teer.rds"))
 
-employment_occupation|>
+# by 2 digit NOC-------------------------------------------
+
+df_list[["job_openings_two_digit"]] <- demand_occupation|>
+  group_by(geographic_area, teer, broad, name)|>
+  summarize(value=sum(value, na.rm=TRUE),
+            `Job Openings`=sum(`Job Openings`, na.rm = TRUE))|>
+  ungroup()|>
+  arrange(geographic_area, desc(teer), `Job Openings`)|>
+  unite(two_digit, broad, teer, sep=": ")|>
+  filter(`Job Openings`>0)|>
+  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))
+
+df_list[["job_openings_two_digit"]]|>
+  SharedData$new(~geographic_area, group="region1")|>
+  write_rds(here("out","jo_two.rds"))
+
+df_list[["employment_two_digit"]] <- employment_occupation|>
   filter(name==min(name))|>
   group_by(geographic_area, teer, broad, name)|>
   summarize(value=sum(value, na.rm=TRUE))|>
   arrange(geographic_area, desc(teer), value)|>
   unite(two_digit, broad, teer, sep=": ")|>
-  mutate(colour=lmo_colours[1])|>
+  mutate(colour=lmo_colours[1])
+
+df_list[["employment_two_digit"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","emp_two.rds"))
 
-employment_occupation|>
+df_list[["cagr_two_digit"]] <- employment_occupation|>
   group_by(geographic_area, teer, broad, name)|>
   summarize(value=sum(value, na.rm=TRUE))|>
   nest()|>
   mutate(value=map_dbl(data, get_cagr),
-               colour=lmo_colours[1])|>
+         colour=lmo_colours[1])|>
   select(-data)|>
   arrange(geographic_area, desc(teer), value)|>
-  unite(two_digit, broad, teer, sep=": ")|>
+  unite(two_digit, broad, teer, sep=": ")
+
+df_list[["cagr_two_digit"]]|>
   SharedData$new(~geographic_area, group="region1")|>
   write_rds(here("out","cagr_two.rds"))
 
-employment_occupation|>
-  filter(name==min(name))|>
+#drill down to occupation------------------------------------
+df_list[["job_openings_all"]] <- demand_occupation|>
+  ungroup()|>
+  arrange(geographic_area, broad, teer, `Job Openings`)|>
+  filter(`Job Openings`>0)|>
+  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))
+
+df_list[["job_openings_all"]]|>
+  SharedData$new(~interaction(geographic_area, broad, teer), group="drilldown")|>
+  write_rds(here("out","jo_occ.rds"))
+
+df_list[["employment_all"]] <-employment_occupation|>
+  filter(name==min(name),
+         value>0)|>
   ungroup()|>
   arrange(geographic_area, broad, teer, value)|>
-  mutate(colour=lmo_colours[1])|>
+  mutate(colour=lmo_colours[1])
+
+df_list[["employment_all"]]|>
   SharedData$new(~interaction(geographic_area, broad, teer), group="drilldown")|>
   write_rds(here("out","emp_occ.rds"))
 
-employment_occupation|>
+df_list[["cagr_all"]] <- employment_occupation|>
   group_by(description, geographic_area, teer, broad)|>
   nest()|>
   mutate(value=map_dbl(data, get_cagr),
          colour=lmo_colours[1])|>
   select(-data)|>
-  arrange(geographic_area, broad, teer, value)|>
+  arrange(geographic_area, broad, teer, value)
+
+df_list[["cagr_all"]]|>
   SharedData$new(~interaction(geographic_area, broad, teer), group="drilldown")|>
   write_rds(here("out","cagr_occ.rds"))
 
-employment_industry|>
-  filter(name==min(name))|>
-  group_by(geographic_area)|>
-  slice_max(value, n=50)|>
-  ungroup()|>
-  arrange(geographic_area, value)|>
-  mutate(colour=lmo_colours[1])|>
-  SharedData$new(~geographic_area, group="region_jo_ind")|>
-  write_rds(here("out","emp_ind.rds"))
+#By aggregate industry----------------------------
 
-employment_industry|>
+df_list[["job_openings_aggregate_industry"]] <- demand_industry|>
+  group_by(aggregate_industry, geographic_area, name)|>
+  summarize(`Job Openings`=sum(`Job Openings`, na.rm = TRUE),
+            value=sum(value, na.rm=TRUE)
+  )|>
+  ungroup()|>
+  arrange(geographic_area, `Job Openings`)|>
+  filter(`Job Openings`>0)|>
+  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))
+
+df_list[["job_openings_aggregate_industry"]]|>
+  SharedData$new(~geographic_area, group="region_jo_ind")|>
+  write_rds(here("out","jo_ind_agg.rds"))
+
+df_list[["employment_aggregate_industry"]]<- employment_industry|>
   filter(name==min(name))|>
   group_by(geographic_area, aggregate_industry)|>
   summarize(value=sum(value, na.rm = TRUE))|>
   ungroup()|>
   arrange(geographic_area, value)|>
-  mutate(colour=lmo_colours[1])|>
+  mutate(colour=lmo_colours[1])
+
+df_list[["employment_aggregate_industry"]]|>
   SharedData$new(~geographic_area, group="region_jo_ind")|>
   write_rds(here("out","emp_agg_ind.rds"))
 
-employment_industry|>
+df_list[["cagr_aggregate_industry"]] <- employment_industry|>
+  group_by(aggregate_industry, geographic_area, name)|>
+  summarize(value=sum(value, na.rm = TRUE))|>
+  nest()|>
+  mutate(value=map_dbl(data, get_cagr),
+         colour=lmo_colours[1])|>
+  select(-data)|>
+  ungroup()|>
+  arrange(geographic_area, value)
+
+df_list[["cagr_aggregate_industry"]]|>
+  SharedData$new(~geographic_area, group="region_jo_ind")|>
+  write_rds(here("out","cagr_agg_ind.rds"))
+
+#by LMO industry-----------------------------------------
+
+df_list[["job_openings_lmo_industry"]] <- demand_industry|>
+  filter(`Job Openings`>0)|>
+  group_by(geographic_area)|>
+  slice_max(`Job Openings`, n=100)|> #this keeps the top 50!!! industries (2 rows for each industry/region)
+  arrange(`Job Openings`, .by_group = TRUE)|>
+  mutate(colour=if_else(name=="Expansion Demand",lmo_colours[1], lmo_colours[2]))
+
+df_list[["job_openings_lmo_industry"]]|>
+  SharedData$new(~geographic_area, group="region_jo_ind")|>
+  write_rds(here("out","jo_ind.rds"))
+
+df_list[["employment_lmo_industry"]] <- employment_industry|>
+  filter(name==min(name))|>
+  group_by(geographic_area)|>
+  slice_max(value, n=50)|>
+  ungroup()|>
+  arrange(geographic_area, value)|>
+  mutate(colour=lmo_colours[1])
+
+df_list[["employment_lmo_industry"]] |>
+  SharedData$new(~geographic_area, group="region_jo_ind")|>
+  write_rds(here("out","emp_ind.rds"))
+
+df_list[["cagr_lmo_industry"]] <- employment_industry|>
   group_by(industry, geographic_area)|>
   nest()|>
   mutate(value=map_dbl(data, get_cagr),
@@ -281,23 +343,14 @@ employment_industry|>
   group_by(geographic_area)|>
   slice_max(value, n=50)|>
   ungroup()|>
-  arrange(geographic_area, value)|>
+  arrange(geographic_area, value)
+
+df_list[["cagr_lmo_industry"]]|>
   SharedData$new(~geographic_area, group="region_jo_ind")|>
   write_rds(here("out","cagr_ind.rds"))
 
-employment_industry|>
-  group_by(aggregate_industry, geographic_area, name)|>
-  summarize(value=sum(value, na.rm = TRUE))|>
-  nest()|>
-  mutate(value=map_dbl(data, get_cagr),
-         colour=lmo_colours[1])|>
-  select(-data)|>
-  ungroup()|>
-  arrange(geographic_area, value)|>
-  SharedData$new(~geographic_area, group="region_jo_ind")|>
-  write_rds(here("out","cagr_agg_ind.rds"))
+#dump data into excel file.
 
-
-
+openxlsx::write.xlsx(df_list, "LMO_dashboard_datasets.xlsx")
 
 
